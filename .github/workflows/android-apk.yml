@@ -1,0 +1,44 @@
+name: Android APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'pubspec.yaml'
+      - '.github/workflows/android-apk.yml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate Android and iOS platform scaffolds
+        run: flutter create --platforms=android,ios --project-name squashframe_ai .
+      - name: Enable internet permission for Android
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android/app/src/main/AndroidManifest.xml')
+          s=p.read_text()
+          s=s.replace('<manifest xmlns:android="http://schemas.android.com/apk/res/android">','<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n    <uses-permission android:name="android.permission.INTERNET"/>')
+          s=s.replace('<application','<application android:usesCleartextTraffic="true"',1)
+          p.write_text(s)
+          PY
+      - name: Dependencies
+        run: flutter pub get
+      - name: Static analysis
+        run: flutter analyze lib
+      - name: Build debug APK
+        run: flutter build apk --debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SquashFrame-AI-V0.1-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 14
