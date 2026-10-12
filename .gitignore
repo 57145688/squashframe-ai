@@ -1,0 +1,6 @@
+/build/
+/.dart_tool/
+/.flutter-plugins*
+/backend/outputs/
+**/__pycache__/
+*.pyc
